@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha</title>
+    <style>
+        .placar {
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+        .placar-geral {
+            margin-bottom: 20px;
+            font-size: 18px;
+            text-align: center;
+        }
+        .mensagem {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #333;
+            padding: 5px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+            text-align: center;
+        }
+        .mensagem.vitoria {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            border-color: #4CAF50;
+            background-color: #DFF2BF;
+            color: #4CAF50;
+            padding: 10px;
+        }
+        .mensagem.empate {
+            border-color: #FF9800;
+            background-color: #FFF3CD;
+            color: #FF9800;
+        }
+        .mensagem.vezX {
+            border-color: #2196F3;
+            background-color: #BBDEFB;
+            color: #2196F3;
+        }
+        .mensagem.vezO {
+            border-color: #F44336;
+            background-color: #FFCDD2;
+            color: #F44336;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .tabuleiro {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+        }
+        .celula {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            border: 1px solid #000;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="placar">
+        <div id="pontuacao">X: 0 | O: 0</div>
+    </div>
+    <div class="mensagem" id="mensagem"></div>
+    <div class="container">
+        <div class="tabuleiro" id="tabuleiro1">
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+            <div class="celula" onclick="marcarCelula(this)"></div>
+        </div>
+    </div>
+    <div class="placar-geral">
+        <h3>Placar Geral de Vitórias</h3>
+        <ul id="placarGeral"></ul>
+    </div>
+
+    <script>
+        let jogadorAtual = 'X';
+        let pontuacoes = { X: 0, O: 0 };
+        const nomesJogadores = {};
+        let jogadas = 0;
+        let placarGeral = JSON.parse(localStorage.getItem('placarGeral')) || {};
+
+        function pedirNomesJogadores() {
+            nomesJogadores.X = prompt("Digite o nome do jogador X:") || 'X';
+            nomesJogadores.O = prompt("Digite o nome do jogador O:") || 'O';
+            atualizarPlacar();
+            mostrarMensagem(`Vez do jogador ${nomesJogadores[jogadorAtual]}`, 'vezX');
+        }
+
+        function marcarCelula(celula) {
+            if (celula.textContent) return;
+
+            celula.textContent = jogadorAtual;
+            jogadas++;
+
+            if (verificarVencedor()) {
+                pontuacoes[jogadorAtual]++;
+                atualizarPlacar();
+                atualizarPlacarGeral(nomesJogadores[jogadorAtual]);
+                mostrarMensagem(`${nomesJogadores[jogadorAtual]} venceu e ganhou um ponto!`, 'vitoria');
+                setTimeout(() => {
+                    resetarTabuleiro();
+                    mostrarMensagem(`Vez do jogador ${nomesJogadores[jogadorAtual]}`, `vez${jogadorAtual}`);
+                }, 2000);
+                jogadas = 0;
+            } else if (verificarEmpate()) {
+                mostrarMensagem("Empate!", 'empate');
+                setTimeout(() => {
+                    resetarTabuleiro();
+                    mostrarMensagem(`Vez do jogador ${nomesJogadores[jogadorAtual]}`, `vez${jogadorAtual}`);
+                }, 2000);
+                jogadas = 0;
+            } else {
+                if (jogadas === 4) {
+                    embaralharTabuleiro();
+                }
+                jogadorAtual = jogadorAtual === 'X' ? 'O' : 'X';
+                const tipoMensagem = jogadorAtual === 'X' ? 'vezX' : 'vezO';
+                mostrarMensagem(`Vez do jogador ${nomesJogadores[jogadorAtual]}`, tipoMensagem);
+            }
+        }
+
+        function verificarVencedor() {
+            const celulas = document.querySelectorAll(`#tabuleiro1 .celula`);
+            const combinacoesVencedoras = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            for (const [a, b, c] of combinacoesVencedoras) {
+                if (celulas[a].textContent && celulas[a].textContent === celulas[b].textContent && celulas[a].textContent === celulas[c].textContent) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function verificarEmpate() {
+            return Array.from(document.querySelectorAll(`#tabuleiro1 .celula`)).every(celula => celula.textContent);
+        }
+
+        function resetarTabuleiro() {
+            document.querySelectorAll(`#tabuleiro1 .celula`).forEach(celula => celula.textContent = '');
+        }
+
+        function atualizarPlacar() {
+            document.getElementById('pontuacao').textContent = `${nomesJogadores.X || 'X'}: ${pontuacoes.X} | ${nomesJogadores.O || 'O'}: ${pontuacoes.O}`;
+        }
+
+        function atualizarPlacarGeral(jogador) {
+            if (!placarGeral[jogador]) {
+                placarGeral[jogador] = 0;
+            }
+            placarGeral[jogador]++;
+            localStorage.setItem('placarGeral', JSON.stringify(placarGeral));
+            exibirPlacarGeral();
+        }
+
+        function exibirPlacarGeral() {
+            const placarGeralDiv = document.getElementById('placarGeral');
+            placarGeralDiv.innerHTML = '';
+            for (const jogador in placarGeral) {
+                const li = document.createElement('li');
+                li.textContent = `${jogador}: ${placarGeral[jogador]} vitórias`;
+                placarGeralDiv.appendChild(li);
+            }
+        }
+
+        function mostrarMensagem(texto, tipo = '') {
+            const mensagemDiv = document.getElementById('mensagem');
+            mensagemDiv.textContent = texto;
+            mensagemDiv.className = `mensagem ${tipo}`;
+        }
+
+        function embaralharTabuleiro() {
+            const celulas = Array.from(document.querySelectorAll(`#tabuleiro1 .celula`));
+            const valores = celulas.map(celula => celula.textContent);
+
+            for (let i = valores.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [valores[i], valores[j]] = [valores[j], valores[i]];
+            }
+
+            celulas.forEach((celula, i) => {
+                celula.textContent = valores[i];
+            });
+        }
+
+        pedirNomesJogadores();
+        exibirPlacarGeral();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
